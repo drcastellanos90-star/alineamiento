@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Alineamiento de Transición de Turbina y Ejes</title>
+    <!-- Librería SheetJS para generar archivos de Excel dinámicamente -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --primary: #1e40af;
+            --primary-hover: #1d4ed8;
+            --accent: #0284c7;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #16a34a;
+            --danger: #dc2626;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text);
+            padding: 16px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        header h1 {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+        header p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        /* Nav Tabs */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+        }
+        .tab-btn {
+            flex: 1;
+            min-width: 130px;
+            padding: 10px 12px;
+            background: #e2e8f0;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            -webkit-appearance: none;
+        }
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        /* Layout Cards */
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+        }
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+        .card-desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            line-height: 1.3;
+        }
+        /* Clock Grid Layout */
+        .clock-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, auto);
+            gap: 8px;
+            max-width: 320px;
+            margin: 0 auto 16px auto;
+            align-items: center;
+        }
+        .clock-pos {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .clock-pos label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+        .clock-pos input {
+            width: 100%;
+            padding: 8px;
+            text-align: center;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            -webkit-appearance: none;
+        }
+        .clock-center {
+            grid-column: 2;
+            grid-row: 2;
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: var(--text-muted);
+            background: var(--bg-color);
+            padding: 12px 4px;
+            border-radius: 50%;
+            border: 2px dashed var(--border);
+        }
+        .pos-12 { grid-column: 2; grid-row: 1; }
+        .pos-9  { grid-column: 1; grid-row: 2; }
+        .pos-3  { grid-column: 3; grid-row: 2; }
+        .pos-6  { grid-column: 2; grid-row: 3; }
+
+        /* General Inputs */
+        .input-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .field label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .field input, .field select {
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            background: white;
+            -webkit-appearance: none;
+        }
+        .btn-calc {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-bottom: 8px;
+            -webkit-appearance: none;
+        }
+        .btn-calc:hover {
+            background: var(--primary-hover);
+        }
+        .btn-excel {
+            width: 100%;
+            padding: 12px;
+            background: var(--success);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s;
+            -webkit-appearance: none;
+        }
+        .btn-excel:hover {
+            background: #15803d;
+        }
+
+        /* Results Box */
+        .results-box {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .result-item {
+            background: var(--bg-color);
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent);
+        }
+        .result-item.highlight {
+            border-left-color: var(--success);
+            background: #f0fdf4;
+        }
+        .result-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+        .result-value {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--text);
+        }
+        .result-dir {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-top: 2px;
+        }
+        /* Canvas Target */
+        .canvas-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 16px;
+            background: #fafafa;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px;
+        }
+        canvas {
+            max-width: 100%;
+            height: auto;
+            background: white;
+        }
+        .alert-box {
+            padding: 10px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: var(--danger);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+            display: none;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Alineamiento Transición Turbina y Motores</h1>
+        <p>Cálculo de centrado con reloj comparador y exportación Excel</p>
+    </header>
+
+    <!-- Pestañas -->
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="transicion">🎯 Transición Turbina<br><small>(1 Reloj Directo)</small></button>
+        <button class="tab-btn" data-tab="inverso">📐 Indicador Inverso<br><small>(2 Relojes / Ejes)</small></button>
+        <button class="tab-btn" data-tab="rimface">📏 Cara y Diámetro<br><small>(Rim & Face)</small></button>
+    </div>
+
+    <div class="alert-box" id="error-alert"></div>
+
+    <!-- TAB 1: TRANSICIÓN DE TURBINA (1 RELOJ DIRECTO) -->
+    <div id="tab-transicion" class="tab-content active">
+        <div class="card">
+            <div class="card-title">🎯 Centrado de Boca de Transición (Pieza 19 vs Anillo B)</div>
+            <div class="card-desc">
+                Reloj montado en el <b>Diámetro Mayor Fijo (Anillo B)</b> palpando el <b>Diámetro Menor Móvil (Boca de Transición 19)</b>. Ingrese las lecturas directas del reloj en las 4 posiciones.
+            </div>
+
+            <div class="clock-container">
+                <div class="clock-pos pos-12">
+                    <label>12:00 (Arriba)</label>
+                    <input type="number" id="tr-12" value="0" step="0.01" inputmode="decimal">
+                </div>
+                <div class="clock-pos pos-9">
+                    <label>9:00 (Izq)</label>
+                    <input type="number" id="tr-9" value="0" step="0.01" inputmode="decimal">
+                </div>
+                <div class="clock-center">BOCA DE<br>TRANSICIÓN</div>
+                <div class="clock-pos pos-3">
+                    <label>3:00 (Der)</label>
+                    <input type="number" id="tr-3" value="0" step="0.01" inputmode="decimal">
+                </div>
+                <div class="clock-pos pos-6">
+                    <label>6:00 (Abajo)</label>
+                    <input type="number" id="tr-6" value="-0.40" step="0.01" inputmode="decimal">
+                </div>
+            </div>
+
+            <div class="input-group">
+                <div class="field">
+                    <label>Punto de Contacto del Reloj</label>
+                    <select id="tr-contacto">
+                        <option value="OD">Exterior de Boca (O.D.)</option>
+                        <option value="ID">Interior de Boca (I.D.)</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Unidad de Medida</label>
+                    <select id="tr-unit">
+                        <option value="mm">Milímetros (mm)</option>
+                        <option value="mils">Milésimas de pulg (mils)</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="button" class="btn-calc" id="btn-calc-transicion">Calcular Desplazamiento Directo</button>
+            <button type="button" class="btn-excel" id="btn-excel-transicion">📥 Exportar Datos a Excel</button>
+        </div>
+
+        <div class="card" id="res-transicion" style="display:none;">
+            <div class="card-title">Corrección Requerida en la Boca Circular</div>
+            <div class="results-box">
+                <div class="result-item highlight">
+                    <div class="result-label">Ajuste Vertical (Eje Y)</div>
+                    <div class="result-value" id="tr-res-vert">0.00 mm</div>
+                    <div class="result-dir" id="tr-dir-vert">-</div>
+                </div>
+                <div class="result-item highlight">
+                    <div class="result-label">Ajuste Horizontal (Eje X)</div>
+                    <div class="result-value" id="tr-res-horiz">0.00 mm</div>
+                    <div class="result-dir" id="tr-dir-horiz">-</div>
+                </div>
+                <div class="result-item">
+                    <div class="result-label">Lectura Total de Carátula (TIR)</div>
+                    <div class="result-value" id="tr-res-tir">0.00 mm</div>
+                    <div class="result-dir">Salto Radial Total</div>
+                </div>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="canvas-transicion" width="280" height="280"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 2: INDICADOR INVERSO (2 RELOJES) -->
+    <div id="tab-inverso" class="tab-content">
+        <div class="card">
+            <div class="card-title">📐 Alineamiento de Ejes - 2 Relojes Radiales</div>
+            <div class="card-desc">Para alineamiento de ejes rotativos entre motor y turbina.</div>
+
+            <div class="input-group">
+                <div class="field">
+                    <label>Dist. entre Relojes (D)</label>
+                    <input type="number" id="inv-d" value="200" inputmode="decimal">
+                </div>
+                <div class="field">
+                    <label>Reloj 1 a Pata Del. (L1)</label>
+                    <input type="number" id="inv-l1" value="150" inputmode="decimal">
+                </div>
+                <div class="field">
+                    <label>Reloj 1 a Pata Tras. (L2)</label>
+                    <input type="number" id="inv-l2" value="450" inputmode="decimal">
+                </div>
+            </div>
+
+            <p style="font-size:0.8rem; font-weight:bold; color:var(--primary); margin:12px 0 6px;">Lecturas Reloj 1 (Máquina Fija):</p>
+            <div class="clock-container">
+                <div class="clock-pos pos-12"><label>12:00</label><input type="number" id="r1-12" value="0" inputmode="decimal"></div>
+                <div class="clock-pos pos-9"><label>9:00</label><input type="number" id="r1-9" value="0" inputmode="decimal"></div>
+                <div class="clock-center">RELOJ 1</div>
+                <div class="clock-pos pos-3"><label>3:00</label><input type="number" id="r1-3" value="0" inputmode="decimal"></div>
+                <div class="clock-pos pos-6"><label>6:00</label><input type="number" id="r1-6" value="-0.30" inputmode="decimal"></div>
+            </div>
+
+            <p style="font-size:0.8rem; font-weight:bold; color:var(--primary); margin:12px 0 6px;">Lecturas Reloj 2 (Máquina Móvil):</p>
+            <div class="clock-container">
+                <div class="clock-pos pos-12"><label>12:00</label><input type="number" id="r2-12" value="0" inputmode="decimal"></div>
+                <div class="clock-pos pos-9"><label>9:00</label><input type="number" id="r2-9" value="0" inputmode="decimal"></div>
+                <div class="clock-center">RELOJ 2</div>
+                <div class="clock-pos pos-3"><label>3:00</label><input type="number" id="r2-3" value="0" inputmode="decimal"></div>
+                <div class="clock-pos pos-6"><label>6:00</label><input type="number" id="r2-6" value="0.20" inputmode="decimal"></div>
+            </div>
+
+            <button type="button" class="btn-calc" id="btn-calc-inverso">Calcular Calzas de Motor</button>
+            <button type="button" class="btn-excel" id="btn-excel-inverso">📥 Exportar Datos a Excel</button>
+        </div>
+
+        <div class="card" id="res-inverso" style="display:none;">
+            <div class="card-title">Corrección de Calzas</div>
+            <div class="results-box">
+                <div class="result-item highlight">
+                    <div class="result-label">Patas Delanteras</div>
+                    <div class="result-value" id="inv-f-vert">0.00</div>
+                    <div class="result-dir" id="inv-f-vert-dir">-</div>
+                </div>
+                <div class="result-item highlight">
+                    <div class="result-label">Patas Traseras</div>
+                    <div class="result-value" id="inv-b-vert">0.00</div>
+                    <div class="result-dir" id="inv-b-vert-dir">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 3: CARA Y DIÁMETRO (RIM & FACE) -->
+    <div id="tab-rimface" class="tab-content">
+        <div class="card">
+            <div class="card-title">📏 Alineamiento Cara y Diámetro (Rim & Face)</div>
+            <div class="card-desc">Para acoplamientos rígidos o flexibles.</div>
+
+            <div class="input-group">
+                <div class="field">
+                    <label>Diámetro Acoplamiento (A)</label>
+                    <input type="number" id="rf-a" value="200" inputmode="decimal">
+                </div>
+                <div class="field">
+                    <label>Acopl. a Pata Del. (L1)</label>
+                    <input type="number" id="rf-l1" value="180" inputmode="decimal">
+                </div>
+                <div class="field">
+                    <label>Acopl. a Pata Tras. (L2)</label>
+                    <input type="number" id="rf-l2" value="480" inputmode="decimal">
+                </div>
+            </div>
+
+            <p style="font-size:0.8rem; font-weight:bold; color:var(--primary); margin:12px 0 6px;">Reloj Radial (Diámetro):</p>
+            <div class="clock-container">
+                <div class="clock-pos pos-12"><label>12:00</label><input type="number" id="rf-r-12" value="0" inputmode="decimal"></div>
+                <div class="clock-pos pos-9"><label>9:00</label><input type="number" id="rf-r-9" value="0" inputmode="decimal"></div>
+                <div class="clock-center">RADIAL</div>
+                <div class="clock-pos pos-3"><label>3:00</label><input type="number" id="rf-r-3" value="0" inputmode="decimal"></div>
+                <div class="clock-pos pos-6"><label>6:00</label><input type="number" id="rf-r-6" value="-0.20" inputmode="decimal"></div>
+            </div>
+
+            <p style="font-size:0.8rem; font-weight:bold; color:var(--primary); margin:12px 0 6px;">Reloj Axial (Cara):</p>
+            <div class="clock-container">
+                <div class="clock-pos pos-12"><label>12:00</label><input type="number" id="rf-f-12" value="0" inputmode="decimal"></div>
+                <div class="clock-pos pos-9"><label>9:00</label><input type="number" id="rf-f-9" value="0" inputmode="decimal"></div>
+                <div class="clock-center">AXIAL</div>
+                <div class="clock-pos pos-3"><label>3:00</label><input type="number" id="rf-f-3" value="0" inputmode="decimal"></div>
+                <div class="clock-pos pos-6"><label>6:00</label><input type="number" id="rf-f-6" value="0.15" inputmode="decimal"></div>
+            </div>
+
+            <button type="button" class="btn-calc" id="btn-calc-rimface">Calcular Calzas</button>
+            <button type="button" class="btn-excel" id="btn-excel-rimface">📥 Exportar Datos a Excel</button>
+        </div>
+
+        <div class="card" id="res-rimface" style="display:none;">
+            <div class="card-title">Corrección de Calzas</div>
+            <div class="results-box">
+                <div class="result-item highlight">
+                    <div class="result-label">Patas Delanteras</div>
+                    <div class="result-value" id="rf-f-val">0.00</div>
+                    <div class="result-dir" id="rf-f-dir">-</div>
+                </div>
+                <div class="result-item highlight">
+                    <div class="result-label">Patas Traseras</div>
+                    <div class="result-value" id="rf-b-val">0.00</div>
+                    <div class="result-dir" id="rf-b-dir">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            const selectedBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+            if (selectedBtn) selectedBtn.classList.add('active');
+            
+            const selectedTab = document.getElementById('tab-' + tabId);
+            if (selectedTab) selectedTab.classList.add('active');
+            
+            hideAlert();
+        }
+
+        function showAlert(msg) {
+            const box = document.getElementById('error-alert');
+            box.innerText = msg;
+            box.style.display = 'block';
+        }
+
+        function hideAlert() {
+            document.getElementById('error-alert').style.display = 'none';
+        }
+
+        // CÁLCULO DIRECTO PARA LA TRANSICIÓN DE TURBINA
+        function calcularTransicion() {
+            hideAlert();
+            const r12 = parseFloat(document.getElementById('tr-12').value) || 0;
+            const r6  = parseFloat(document.getElementById('tr-6').value) || 0;
+            const r3  = parseFloat(document.getElementById('tr-3').value) || 0;
+            const r9  = parseFloat(document.getElementById('tr-9').value) || 0;
+            const contacto = document.getElementById('tr-contacto').value;
+            const unit = document.getElementById('tr-unit').value;
+
+            const sumVert = r12 + r6;
+            const sumHoriz = r3 + r9;
+            if (Math.abs(sumVert - sumHoriz) > 0.05) {
+                showAlert(`Aviso: Revise lecturas. (12+6 = ${sumVert.toFixed(2)}) difiere de (3+9 = ${sumHoriz.toFixed(2)}).`);
+            }
+
+            let shiftVert = (r6 - r12) / 2;
+            let shiftHoriz = (r3 - r9) / 2;
+
+            if (contacto === 'ID') {
+                shiftVert = -shiftVert;
+                shiftHoriz = -shiftHoriz;
+            }
+
+            let dirVert = shiftVert > 0 ? "MOVER BOCA HACIA ARRIBA ⬆️" : (shiftVert < 0 ? "MOVER BOCA HACIA ABAJO ⬇️" : "CENTRADO VERTICAL ✅");
+            let dirHoriz = shiftHoriz > 0 ? "MOVER BOCA A LA IZQUIERDA ⬅️" : (shiftHoriz < 0 ? "MOVER BOCA A LA DERECHA ➡️" : "CENTRADO HORIZONTAL ✅");
+
+            const tirTotal = Math.sqrt(Math.pow(r6 - r12, 2) + Math.pow(r3 - r9, 2));
+
+            document.getElementById('tr-res-vert').innerText = `${Math.abs(shiftVert).toFixed(3)} ${unit}`;
+            document.getElementById('tr-dir-vert').innerText = dirVert;
+
+            document.getElementById('tr-res-horiz').innerText = `${Math.abs(shiftHoriz).toFixed(3)} ${unit}`;
+            document.getElementById('tr-dir-horiz').innerText = dirHoriz;
+
+            document.getElementById('tr-res-tir').innerText = `${tirTotal.toFixed(3)} ${unit}`;
+
+            document.getElementById('res-transicion').style.display = 'block';
+
+            dibujarTargetTransicion(shiftHoriz, shiftVert);
+        }
+
+        function dibujarTargetTransicion(dx, dy) {
+            const canvas = document.getElementById('canvas-transicion');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            const cx = w / 2;
+            const cy = h / 2;
+
+            ctx.clearRect(0, 0, w, h);
+
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 1;
+            [30, 60, 90, 120].forEach(r => {
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.stroke();
+            });
+
+            ctx.strokeStyle = '#94a3b8';
+            ctx.beginPath();
+            ctx.moveTo(cx - 130, cy); ctx.lineTo(cx + 130, cy);
+            ctx.moveTo(cx, cy - 130); ctx.lineTo(cx, cy + 130);
+            ctx.stroke();
+
+            const scale = 120; 
+            const px = cx - (dx * scale); 
+            const py = cy - (dy * scale);
+
+            ctx.fillStyle = '#16a34a';
+            ctx.beginPath();
+            ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#dc2626';
+            ctx.beginPath();
+            ctx.arc(px, py, 7, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (Math.abs(dx) > 0.001 || Math.abs(dy) > 0.001) {
+                ctx.strokeStyle = '#0284c7';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(px, py);
+                ctx.lineTo(cx, cy);
+                ctx.stroke();
+            }
+        }
+
+        // CÁLCULO INDICADOR INVERSO
+        function calcularInverso() {
+            hideAlert();
+            const D = parseFloat(document.getElementById('inv-d').value) || 1;
+            const L1 = parseFloat(document.getElementById('inv-l1').value) || 0;
+            const L2 = parseFloat(document.getElementById('inv-l2').value) || 0;
+
+            const r1_12 = parseFloat(document.getElementById('r1-12').value) || 0;
+            const r1_6  = parseFloat(document.getElementById('r1-6').value) || 0;
+            const r2_12 = parseFloat(document.getElementById('r2-12').value) || 0;
+            const r2_6  = parseFloat(document.getElementById('r2-6').value) || 0;
+
+            const r1_v = (r1_6 - r1_12) / 2;
+            const r2_v = (r2_6 - r2_12) / 2;
+
+            const feet1_v = ((r1_v + r2_v) / D) * L1 - r1_v;
+            const feet2_v = ((r1_v + r2_v) / D) * L2 - r1_v;
+
+            document.getElementById('inv-f-vert').innerText = Math.abs(feet1_v).toFixed(3);
+            document.getElementById('inv-f-vert-dir').innerText = feet1_v > 0 ? "AÑADIR CALZAS ➕" : "QUITAR CALZAS ➖";
+
+            document.getElementById('inv-b-vert').innerText = Math.abs(feet2_v).toFixed(3);
+            document.getElementById('inv-b-vert-dir').innerText = feet2_v > 0 ? "AÑADIR CALZAS ➕" : "QUITAR CALZAS ➖";
+
+            document.getElementById('res-inverso').style.display = 'block';
+        }
+
+        // CÁLCULO RIM & FACE
+        function calcularRimFace() {
+            hideAlert();
+            const A = parseFloat(document.getElementById('rf-a').value) || 1;
+            const L1 = parseFloat(document.getElementById('rf-l1').value) || 0;
+            const L2 = parseFloat(document.getElementById('rf-l2').value) || 0;
+
+            const r_12 = parseFloat(document.getElementById('rf-r-12').value) || 0;
+            const r_6  = parseFloat(document.getElementById('rf-r-6').value) || 0;
+            const f_12 = parseFloat(document.getElementById('rf-f-12').value) || 0;
+            const f_6  = parseFloat(document.getElementById('rf-f-6').value) || 0;
+
+            const rim_v = (r_6 - r_12) / 2;
+            const face_v = (f_6 - f_12) / 2;
+
+            const feet1_v = (face_v / A) * L1 + rim_v;
+            const feet2_v = (face_v / A) * L2 + rim_v;
+
+            document.getElementById('rf-f-val').innerText = Math.abs(feet1_v).toFixed(3);
+            document.getElementById('rf-f-dir').innerText = feet1_v > 0 ? "AÑADIR CALZAS ➕" : "QUITAR CALZAS ➖";
+
+            document.getElementById('rf-b-val').innerText = Math.abs(feet2_v).toFixed(3);
+            document.getElementById('rf-b-dir').innerText = feet2_v > 0 ? "AÑADIR CALZAS ➕" : "QUITAR CALZAS ➖";
+
+            document.getElementById('res-rimface').style.display = 'block';
+        }
+
+        // FUNCIONES PARA EXPORTAR A EXCEL
+        function exportarExcel(tipo) {
+            if (typeof XLSX === 'undefined') {
+                alert('Se requiere conexión a internet la primera vez para cargar el módulo de exportación a Excel.');
+                return;
+            }
+
+            const now = new Date();
+            const fechaStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+            let data = [];
+            let filename = `Alineamiento_${tipo}_${now.toISOString().slice(0,10)}.xlsx`;
+
+            if (tipo === 'Transicion') {
+                calcularTransicion();
+                data = [
+                    ["REPORTE DE ALINEAMIENTO DE TRANSICIÓN DE TURBINA"],
+                    ["Fecha y Hora:", fechaStr],
+                    [],
+                    ["PARÁMETROS Y MEDIDAS"],
+                    ["Punto de Contacto", document.getElementById('tr-contacto').value === 'OD' ? 'Exterior (O.D.)' : 'Interior (I.D.)'],
+                    ["Unidad de Medida", document.getElementById('tr-unit').value],
+                    ["Lectura 12:00 (Arriba)", parseFloat(document.getElementById('tr-12').value) || 0],
+                    ["Lectura 3:00 (Derecha)", parseFloat(document.getElementById('tr-3').value) || 0],
+                    ["Lectura 6:00 (Abajo)", parseFloat(document.getElementById('tr-6').value) || 0],
+                    ["Lectura 9:00 (Izquierda)", parseFloat(document.getElementById('tr-9').value) || 0],
+                    [],
+                    ["RESULTADOS DE CORRECCIÓN"],
+                    ["Ajuste Vertical", document.getElementById('tr-res-vert').innerText, document.getElementById('tr-dir-vert').innerText],
+                    ["Ajuste Horizontal", document.getElementById('tr-res-horiz').innerText, document.getElementById('tr-dir-horiz').innerText],
+                    ["Salto Radial Total (TIR)", document.getElementById('tr-res-tir').innerText]
+                ];
+            } else if (tipo === 'Indicador_Inverso') {
+                calcularInverso();
+                data = [
+                    ["REPORTE DE ALINEAMIENTO - INDICADOR INVERSO"],
+                    ["Fecha y Hora:", fechaStr],
+                    [],
+                    ["DISTANCIAS (mm/mils)"],
+                    ["Distancia entre relojes (D)", parseFloat(document.getElementById('inv-d').value) || 0],
+                    ["Reloj 1 a Pata Delantera (L1)", parseFloat(document.getElementById('inv-l1').value) || 0],
+                    ["Reloj 1 a Pata Trasera (L2)", parseFloat(document.getElementById('inv-l2').value) || 0],
+                    [],
+                    ["LECTURAS RELOJ 1"],
+                    ["12:00", parseFloat(document.getElementById('r1-12').value) || 0],
+                    ["3:00", parseFloat(document.getElementById('r1-3').value) || 0],
+                    ["6:00", parseFloat(document.getElementById('r1-6').value) || 0],
+                    ["9:00", parseFloat(document.getElementById('r1-9').value) || 0],
+                    [],
+                    ["LECTURAS RELOJ 2"],
+                    ["12:00", parseFloat(document.getElementById('r2-12').value) || 0],
+                    ["3:00", parseFloat(document.getElementById('r2-3').value) || 0],
+                    ["6:00", parseFloat(document.getElementById('r2-6').value) || 0],
+                    ["9:00", parseFloat(document.getElementById('r2-9').value) || 0],
+                    [],
+                    ["CORRECCIÓN DE CALZAS EN MOTOR"],
+                    ["Patas Delanteras", document.getElementById('inv-f-vert').innerText, document.getElementById('inv-f-vert-dir').innerText],
+                    ["Patas Traseras", document.getElementById('inv-b-vert').innerText, document.getElementById('inv-b-vert-dir').innerText]
+                ];
+            } else if (tipo === 'Rim_Face') {
+                calcularRimFace();
+                data = [
+                    ["REPORTE DE ALINEAMIENTO - RIM & FACE"],
+                    ["Fecha y Hora:", fechaStr],
+                    [],
+                    ["GEOMETRÍA Y DISTANCIAS"],
+                    ["Diámetro Acoplamiento (A)", parseFloat(document.getElementById('rf-a').value) || 0],
+                    ["Acoplamiento a Pata Del. (L1)", parseFloat(document.getElementById('rf-l1').value) || 0],
+                    ["Acoplamiento a Pata Tras. (L2)", parseFloat(document.getElementById('rf-l2').value) || 0],
+                    [],
+                    ["LECTURAS RADIALES (DIÁMETRO)"],
+                    ["12:00", parseFloat(document.getElementById('rf-r-12').value) || 0],
+                    ["3:00", parseFloat(document.getElementById('rf-r-3').value) || 0],
+                    ["6:00", parseFloat(document.getElementById('rf-r-6').value) || 0],
+                    ["9:00", parseFloat(document.getElementById('rf-r-9').value) || 0],
+                    [],
+                    ["LECTURAS AXIALES (CARA)"],
+                    ["12:00", parseFloat(document.getElementById('rf-f-12').value) || 0],
+                    ["3:00", parseFloat(document.getElementById('rf-f-3').value) || 0],
+                    ["6:00", parseFloat(document.getElementById('rf-f-6').value) || 0],
+                    ["9:00", parseFloat(document.getElementById('rf-f-9').value) || 0],
+                    [],
+                    ["CORRECCIÓN DE CALZAS EN MOTOR"],
+                    ["Patas Delanteras", document.getElementById('rf-f-val').innerText, document.getElementById('rf-f-dir').innerText],
+                    ["Patas Traseras", document.getElementById('rf-b-val').innerText, document.getElementById('rf-b-dir').innerText]
+                ];
+            }
+
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Reporte Alineamiento");
+            XLSX.writeFile(wb, filename);
+        }
+
+        // VINCULACIÓN DE EVENTOS COMPATIBLES CON IOS
+        window.addEventListener('DOMContentLoaded', function() {
+            // Manejo de pestañas
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                const handler = function(e) {
+                    e.preventDefault();
+                    const tabId = this.getAttribute('data-tab');
+                    switchTab(tabId);
+                };
+                btn.addEventListener('click', handler);
+                btn.addEventListener('touchend', handler);
+            });
+
+            // Botones de cálculo
+            const btnTrans = document.getElementById('btn-calc-transicion');
+            if (btnTrans) {
+                btnTrans.addEventListener('click', calcularTransicion);
+                btnTrans.addEventListener('touchend', function(e) { e.preventDefault(); calcularTransicion(); });
+            }
+
+            const btnInv = document.getElementById('btn-calc-inverso');
+            if (btnInv) {
+                btnInv.addEventListener('click', calcularInverso);
+                btnInv.addEventListener('touchend', function(e) { e.preventDefault(); calcularInverso(); });
+            }
+
+            const btnRF = document.getElementById('btn-calc-rimface');
+            if (btnRF) {
+                btnRF.addEventListener('click', calcularRimFace);
+                btnRF.addEventListener('touchend', function(e) { e.preventDefault(); calcularRimFace(); });
+            }
+
+            // Botones de exportación a Excel
+            const btnExTrans = document.getElementById('btn-excel-transicion');
+            if (btnExTrans) {
+                btnExTrans.addEventListener('click', function() { exportarExcel('Transicion'); });
+                btnExTrans.addEventListener('touchend', function(e) { e.preventDefault(); exportarExcel('Transicion'); });
+            }
+
+            const btnExInv = document.getElementById('btn-excel-inverso');
+            if (btnExInv) {
+                btnExInv.addEventListener('click', function() { exportarExcel('Indicador_Inverso'); });
+                btnExInv.addEventListener('touchend', function(e) { e.preventDefault(); exportarExcel('Indicador_Inverso'); });
+            }
+
+            const btnExRF = document.getElementById('btn-excel-rimface');
+            if (btnExRF) {
+                btnExRF.addEventListener('click', function() { exportarExcel('Rim_Face'); });
+                btnExRF.addEventListener('touchend', function(e) { e.preventDefault(); exportarExcel('Rim_Face'); });
+            }
+
+            // Recálculo automático en vivo
+            document.querySelectorAll('#tab-transicion input, #tab-transicion select').forEach(el => {
+                el.addEventListener('input', calcularTransicion);
+                el.addEventListener('change', calcularTransicion);
+            });
+
+            document.querySelectorAll('#tab-inverso input').forEach(el => {
+                el.addEventListener('input', calcularInverso);
+                el.addEventListener('change', calcularInverso);
+            });
+
+            document.querySelectorAll('#tab-rimface input').forEach(el => {
+                el.addEventListener('input', calcularRimFace);
+                el.addEventListener('change', calcularRimFace);
+            });
+
+            // Ejecución inicial automática
+            calcularTransicion();
+        });
+    </script>
+</body>
+</html>
